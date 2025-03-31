@@ -1,0 +1,33 @@
+SELECT alias.* 
+FROM (
+    SELECT 
+        F3_DTLANC, 
+        F3_LANCAM, 
+        CASE 
+            WHEN TRIM(LV.F3_DTCANC) IS NOT NULL AND LENGTH(TRIM(LV.F3_DTCANC)) = 8 
+            THEN 'Cancelado' 
+            ELSE 'Faturado' 
+        END AS Status_cancelado, 
+        CASE 
+            WHEN TRIM(LV.F3_DTCANC) IS NOT NULL AND LENGTH(TRIM(LV.F3_DTCANC)) = 8 
+            THEN TO_DATE(LV.F3_DTCANC, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+        END AS Data_Cancelado, 
+        LV.F3_NFISCAL, 
+        CASE 
+            WHEN LENGTH(TRIM(LV.F3_EMISSAO)) = 8 
+            THEN TO_DATE(LV.F3_EMISSAO, 'YYYYMMDD') 
+        END AS DATA_EMISSAO_SF3, 
+        CASE 
+            WHEN LENGTH(TRIM(SE2.E2_EMISSAO)) = 8 
+            THEN TO_DATE(SE2.E2_EMISSAO, 'YYYYMMDD') 
+        END AS DATA_EMISSAO_SE2, 
+        CASE 
+            WHEN LENGTH(TRIM(LV.F3_EMISSAO)) = 8 AND LENGTH(TRIM(SE2.E2_EMISSAO)) = 8 
+            THEN TO_DATE(LV.F3_EMISSAO, 'YYYYMMDD') - TO_DATE(SE2.E2_EMISSAO, 'YYYYMMDD') 
+        END AS Leadtime_RecebimentoFiscal, 
+        F3_CONTA 
+    FROM protheus.SF3010 LV 
+    LEFT JOIN protheus.SE2010 SE2 ON LV.F3_CONTA = SE2.E2_CONTAD 
+    WHERE LV.F3_FILIAL = '010001' -- Ajustado para tipo string
+) alias;
