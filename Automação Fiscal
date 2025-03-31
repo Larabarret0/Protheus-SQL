@@ -1,0 +1,13 @@
+SELECT
+    DS_DATAPRE,
+    DS_DATAIMP,
+    DS_ARQUIVO,
+    CASE
+        WHEN DS_STATUS = ' ' OR DS_STATUS = 'B' THEN 'Sem lançamento'
+        ELSE 'Nota lançada'
+    END AS STATUS,
+    DS_STATUS,
+    DS_OK
+FROM
+    protheus.SDS010 XML
+Where D_E_L_E_T_ <>'*'
