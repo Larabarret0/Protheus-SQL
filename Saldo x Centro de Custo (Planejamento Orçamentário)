@@ -1,0 +1,69 @@
+SELECT
+    Derivada.*,
+    Derivada.ORCADO - Derivada.Realizado AS Saldo_OR_RE,
+    Derivada.ORCADO + Derivada.Contigencia As Orcado_Contingencia,
+    Derivada.T_ENTRADA - Derivada.T_SAIDA As Saldo_TE_TS
+FROM (
+    SELECT
+        AKD.AKD_OPER,
+        CASE
+            WHEN AKD.AKD_OPER = '9' THEN 'CAPEX'
+            WHEN AKD.AKD_OPER IN ('4', '5', '6', '8') THEN 'OPEX'
+            ELSE '' 
+        END AS CATEGORIA_OPERACAO,
+        CTT_FILIAL,
+        CTT.CTT_CUSTO AS CENTRO_CUSTO,
+        CTT.CTT_DESC01 AS DESCRICAO_CC,
+        CTT.CTT_CLASSE,
+        CASE 
+            WHEN CTT.CTT_CLASSE = 1 THEN 'CC Sintético'
+            WHEN CTT.CTT_CLASSE = 2 THEN 'CC Analítico'
+            ELSE ''
+        END AS DESCRICAO_CLASSE,
+        EXTRACT(MONTH FROM CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN TO_DATE(AKD.AKD_DATA, 'YYYYMMDD')
+            ELSE TO_DATE('19000101','YYYYMMDD')
+        END) AS MES,
+        TO_CHAR(EXTRACT(YEAR FROM CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN TO_DATE(AKD.AKD_DATA, 'YYYYMMDD')
+            ELSE TO_DATE('19000101','YYYYMMDD')
+        END)) AS ANO,
+        TO_CHAR(TO_DATE(CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN AKD.AKD_DATA
+            ELSE '19000101'
+        END, 'YYYYMMDD'), 'Month YYYY','NLS_DATE_LANGUAGE=PORTUGUESE') AS MES_ANO_LANCAMENTO,    
+        
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('OR') THEN AKD.AKD_VALOR1 ELSE 0 END) AS ORCADO, 
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('RE') THEN AKD.AKD_VALOR1 ELSE 0 END) AS Realizado,
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('EM') THEN AKD.AKD_VALOR1 ELSE 0 END) AS Empenhado,
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('TE') THEN AKD.AKD_VALOR1 ELSE 0 END) AS T_ENTRADA,
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('TS') THEN AKD.AKD_VALOR1 ELSE 0 END) AS T_SAIDA,
+        SUM(CASE WHEN AKD.AKD_TPSALD IN ('CT') THEN AKD.AKD_VALOR1 ELSE 0 END) AS Contigencia
+    FROM
+        PROTHEUS.CTT010 CTT
+    LEFT JOIN
+        PROTHEUS.AKD010 AKD ON AKD.AKD_CC = CTT.CTT_CUSTO
+    WHERE
+        CTT.D_E_L_E_T_ <> '*' AND
+        AKD.D_E_L_E_T_ <> '*' AND
+        AKD.AKD_FILORI = '010001'
+    GROUP BY
+        CTT.CTT_CUSTO,
+        CTT.CTT_DESC01,
+        CTT.CTT_CLASSE,
+        EXTRACT(MONTH FROM CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN TO_DATE(AKD.AKD_DATA, 'YYYYMMDD')
+            ELSE TO_DATE('19000101','YYYYMMDD')
+        END),
+        TO_CHAR(EXTRACT(YEAR FROM CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN TO_DATE(AKD.AKD_DATA, 'YYYYMMDD')
+            ELSE TO_DATE('19000101','YYYYMMDD')
+        END)),
+        TO_CHAR(TO_DATE(CASE 
+            WHEN  AKD.AKD_DATA <> ' ' THEN AKD.AKD_DATA
+            ELSE '19000101'
+        END, 'YYYYMMDD'), 'Month YYYY','NLS_DATE_LANGUAGE=PORTUGUESE'),
+        CTT_FILIAL,
+        AKD.AKD_OPER
+        
+) Derivada
