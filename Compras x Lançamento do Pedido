@@ -1,0 +1,25 @@
+SELECT 
+  TO_DATE(PC.C7_EMISSAO, 'YYYYMMDD') AS Data_Emissao,
+  TO_DATE(NF.D1_DTDIGIT, 'YYYYMMDD') AS Data_Digitacao_NF,
+  TO_DATE(NF.D1_DTDIGIT, 'YYYYMMDD') - TO_DATE(PC.C7_EMISSAO, 'YYYYMMDD') AS Leadtime_dias,
+  PC.C7_NUM AS Numero_Pedido,
+  Des.B1_GRUPO AS Grupo_Produto,
+  GP.BM_DESC AS Descricao_GrupoProduto,
+  PC.C7_PRODUTO AS Produto,
+  Des.B1_Desc AS Descricao_Produto,
+  Fornecedor.A2_NOME AS Descricao_fornecedor,
+  Fornecedor.A2_COD AS FORNECEDOR       
+FROM 
+  protheus.SC7010 PC
+LEFT JOIN 
+  protheus.SB1010 Des ON PC.C7_PRODUTO = Des.B1_COD
+LEFT JOIN  
+  protheus.SD1010 NF ON PC.C7_NUM = NF.D1_PEDIDO
+LEFT JOIN  
+  protheus.SBM010 GP ON Des.B1_GRUPO = GP.BM_GRUPO
+LEFT JOIN 
+  protheus.SA2010 Fornecedor ON PC.C7_FORNECE = Fornecedor.A2_COD        
+WHERE 
+  PC.C7_FILIAL = '010001'
+ORDER BY 
+  Data_Digitacao_NF ASC
