@@ -1,0 +1,31 @@
+SELECT
+    CASE
+        WHEN Data_VencReal < CURRENT_DATE AND Data_BAIXA = TO_DATE('19000101', 'YYYYMMDD') THEN 'Título em Atraso'
+        WHEN Data_BAIXA <> TO_DATE('19000101', 'YYYYMMDD') THEN 'Pagamento Realizado'
+        ELSE 'Título no Prazo'
+    END AS STATUS_TITULO,
+    alias.*
+FROM    
+    (SELECT 
+        CASE 
+                WHEN SE2.E2_BAIXA <> ' ' THEN TO_DATE(SE2.E2_BAIXA, 'YYYYMMDD') 
+                ELSE TO_DATE('19000101', 'YYYYMMDD') 
+                END AS Data_BAIXA,
+        CASE 
+                WHEN SE2.E2_EMISSAO <> ' ' THEN TO_DATE(SE2.E2_EMISSAO, 'YYYYMMDD') 
+                ELSE TO_DATE('19000101', 'YYYYMMDD') 
+                END AS Data_EMISSAO,
+        CASE 
+                WHEN SE2.E2_VENCREA <> ' ' THEN TO_DATE(SE2.E2_VENCREA, 'YYYYMMDD') 
+                ELSE TO_DATE('19000101', 'YYYYMMDD') 
+                END AS Data_VencReal,
+                
+        TS1_NUMSE2 AS Titulo,
+        SE2.E2_Valor AS VALOR,
+        SE2.E2_Valor + SE2.E2_ACRESC - SE2.E2_DESCONT AS Valor_Corrigido,
+        (SE2.E2_Valor + SE2.E2_ACRESC - SE2.E2_DESCONT) - SE2.E2_Valor as Diferenca_Correcao,
+        TS1.*
+    FROM Protheus.ts1010 ts1
+    LEFT JOIN PROTHEUS.SE2010 SE2 ON E2_NUM = TS1_NUMSE2
+    WHERE TS1_FILIAL = 010001 and TS1.D_E_L_E_T_ <> '*')alias
+    
