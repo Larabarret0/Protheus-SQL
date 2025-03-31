@@ -1,0 +1,68 @@
+SELECT
+        CASE
+        WHEN Data_VencReal < CURRENT_DATE AND Data_BAIXA = TO_DATE('19000101', 'YYYYMMDD') THEN 'Título em Atraso'
+        WHEN Data_BAIXA <> TO_DATE('19000101', 'YYYYMMDD') THEN 'Pagamento Realizado'
+        ELSE 'Título no Prazo'
+    END AS Titulos_Atraso,
+    TabelaDerivada.*
+FROM (
+    SELECT
+        Pagar.E2_ORIGEM,
+        CASE    
+            WHEN Pagar.E2_ORIGEM = 'MATA954' THEN 'Apuração de ISS'
+            WHEN Pagar.E2_ORIGEM = 'MATA953' THEN 'Apuração de ICMS'
+            WHEN Pagar.E2_ORIGEM = 'FISA001' THEN 'Apuração de IEFD Contribuições'
+            ELSE ''
+            END AS APURACOES,
+        CASE    
+            WHEN Pagar.E2_ORIGEM = 'FINA040' THEN 'Gerado incorretamente' -- CONTAS A RECEBER
+            WHEN Pagar.E2_ORIGEM = 'FINA050' THEN 'Gerado incorretamente' -- CONTAS A PAGAR
+            WHEN Pagar.E2_ORIGEM = 'MATA460' THEN 'Gerado incorretamente' -- DOCUMENTO SAIDA
+            WHEN Pagar.E2_ORIGEM = 'FINA080' THEN 'Gerado incorretamente' -- BAIXAS A PAGAR MANUAL
+            WHEN Pagar.E2_ORIGEM = 'FINA090' THEN 'Gerado incorretamente' -- BAIXAS A PAGAR AUTOMÁTICA
+            ELSE ''
+            END AS TITULOS_INCORRETOS,    
+        Pagar.E2_NFELETR,
+        Pagar.E2_Valor,
+        Pagar.E2_Valor + Pagar.E2_ACRESC - Pagar.E2_DESCONT AS Valor_Corrigido,
+        (Pagar.E2_Valor + Pagar.E2_ACRESC - Pagar.E2_DESCONT) - Pagar.E2_Valor as Diferenca_Correcao,
+        TO_DATE(E2_EMISSAO, 'YYYYMMDD') AS Data_Emissao,
+        CASE 
+            WHEN E2_VENCTO <> ' ' THEN TO_DATE(E2_VENCTO, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+            END AS Data_Venc,
+        CASE 
+            WHEN E2_VENCREA <> ' ' THEN TO_DATE(E2_VENCREA, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+            END AS Data_VencReal,
+        CASE 
+            WHEN E2_BAIXA <> ' ' THEN TO_DATE(E2_BAIXA, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+            END AS Data_BAIXA,
+        CASE 
+            WHEN E2_BAIXA <> ' ' AND E2_BAIXA > E2_VENCREA THEN 'Pago com atraso'
+            WHEN E2_BAIXA <> ' ' AND E2_BAIXA <= E2_VENCREA THEN 'Pago no prazo'
+            ELSE 'Título em aberto'
+        END AS Estado_Pagto,
+        Pagar.E2_Filial,
+        Pagar.E2_NUM,
+        Pagar.E2_NOMFOR,
+        Pagar.E2_TIPO,
+        E2_DESCONT,
+        E2_ACRESC,
+        E2_PARCELA,
+        E2_TEMDOCS,
+        E2_SALDO,
+        CASE 
+    WHEN E2_BAIXA <> ' '  AND E2_SALDO > 0 THEN 'Em liquidação'
+    WHEN E2_BAIXA = ' ' THEN 'Título Aberto'
+    ELSE 'Liquidado'
+END AS Status_Liquidacao
+    FROM
+        PROTHEUS.SE2010 Pagar
+    WHERE 
+    E2_FILIAL = '010001'and D_E_L_E_T_ <>'*'
+) TabelaDerivada
+
+ORDER BY 
+    Data_BAIXA DESC
