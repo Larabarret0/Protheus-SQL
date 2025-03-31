@@ -1,0 +1,26 @@
+SELECT
+    CASE 
+            WHEN D3_EMISSAO <> ' ' THEN TO_DATE(D3_EMISSAO, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+            END AS Data_Emissao, 
+    SF5010.F5_TEXTO AS DESCRICAO_TM,
+    Moviment.D3_FILIAL AS filial,
+    Moviment.D3_TM AS Tipo_de_movimento,
+    Moviment.D3_COD AS Produto,
+    Moviment.D3_UM AS unidade,
+    Moviment.D3_QUANT AS quantidade,
+    Moviment.D3_CF AS Tipo_RE_DE,
+    CASE 
+        WHEN  Moviment.D3_CF IN ('DE0') THEN 'Devolução Manual'
+        WHEN  Moviment.D3_CF IN ('RE0') THEN 'Requisição Manual'
+        ELSE 'Sistema' END AS MOVIMENTACAO_MANUAL,
+    CASE
+        WHEN D3_DOC = 'INVENT' AND D3_ESTORNO = ' ' THEN 'Mov por Inventário'
+        ELSE 'Mov sem Inventário' END AS INVENTARIO
+      
+FROM
+    PROTHEUS.SD3010 Moviment
+LEFT JOIN
+    PROTHEUS.SF5010 SF5010 ON Moviment.D3_TM = SF5010.F5_CODIGO
+WHERE
+   Moviment.D_E_L_E_T_ <>'*' and Moviment.D3_FILIAL = '010001' 
