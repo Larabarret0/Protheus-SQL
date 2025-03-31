@@ -1,0 +1,20 @@
+SELECT
+  MOV.N4_OCORR,
+  CASE 
+    WHEN MOV.N4_OCORR = '01' THEN 'Baixa'
+    WHEN MOV.N4_OCORR = '02' THEN 'Substituição'
+    WHEN MOV.N4_OCORR = '03' THEN 'Transf. de'
+    WHEN MOV.N4_OCORR = '04' THEN 'Transf. para'
+    WHEN MOV.N4_OCORR = '05' THEN 'Implantação'
+    WHEN MOV.N4_OCORR = '06' THEN 'Depreciação'
+    WHEN MOV.N4_OCORR = '07' THEN 'Correção'
+    WHEN MOV.N4_OCORR = '08' THEN 'Corr. Deprec'
+    WHEN MOV.N4_OCORR = '09' THEN 'Ampliação'
+    ELSE MOV.N4_OCORR -- Caso não atenda nenhuma das condições, mantém o valor original
+  END AS Descricao_Ocorrencia,
+  TO_DATE(MOV.N4_DATA, 'YYYYMMDD') AS Data_MOVIMENTO,
+  CASE WHEN MOV.N4_DCONTAB <> ' ' THEN TO_DATE(MOV.N4_DCONTAB, 'YYYYMMDD') ELSE TO_DATE('19000101', 'YYYYMMDD') END AS DATA_CONTABILIZACAO,
+  CASE WHEN MOV.N4_DCONTAB <> ' ' THEN TO_DATE(MOV.N4_DCONTAB, 'YYYYMMDD') - TO_DATE(MOV.N4_DATA, 'YYYYMMDD') WHEN MOV.N4_DCONTAB = ' ' THEN NULL END AS LEADTIME,
+  MOV.*
+FROM PROTHEUS.SN4010 MOV
+Where d_e_l_e_t_ <>'*'
