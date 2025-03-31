@@ -1,0 +1,53 @@
+SELECT
+    Produto,
+    DESCRICAO_PRODUTO,
+    GRUPO_PRODUTO,
+    DESCRICAO_GRUPO_PRODUTO,
+    Ultima_Compra_Data,
+    Ultimo_Compra_VUNIT,
+    Media_D1_VUNIT,
+    Media_D1_VUNIT - Ultimo_Compra_VUNIT AS Diferenca_Unitaria,
+    ((Media_D1_VUNIT - Ultimo_Compra_VUNIT) / Media_D1_VUNIT)*100 AS Indice_Unitario,
+    CASE
+        WHEN (((Media_D1_VUNIT - Ultimo_Compra_VUNIT) / Media_D1_VUNIT)*100) <-80 THEN 'Preço > 80%' 
+        WHEN (((Media_D1_VUNIT - Ultimo_Compra_VUNIT) / Media_D1_VUNIT)*100) <-50 THEN 'Preço > 50%'
+        WHEN (((Media_D1_VUNIT - Ultimo_Compra_VUNIT) / Media_D1_VUNIT)*100) <-20 THEN 'Preço > 20%'
+
+        ELSE ' Dentro da Margem' END AS Alerta_Compra
+
+
+FROM (
+    SELECT
+        CAST(produto.B1_COD AS VARCHAR(50)) AS Produto,
+        produto.B1_DESC AS DESCRICAO_PRODUTO,
+        produto.B1_GRUPO AS GRUPO_PRODUTO,
+        GP.BM_DESC AS DESCRICAO_GRUPO_PRODUTO,
+        
+        (
+            SELECT TO_DATE(CASE WHEN D1_EMISSAO <> ' ' THEN D1_EMISSAO ELSE '19000101' END, 'YYYYMMDD')
+            FROM Protheus.SD1010
+            WHERE D1_COD = produto.B1_COD
+            ORDER BY TO_DATE(CASE WHEN D1_EMISSAO <> ' ' THEN D1_EMISSAO ELSE '19000101' END, 'YYYYMMDD') DESC
+            FETCH FIRST 1 ROW ONLY
+        ) AS Ultima_Compra_Data,
+        (
+            SELECT D1_VUNIT
+            FROM Protheus.SD1010
+            WHERE D1_COD = produto.B1_COD
+            ORDER BY TO_DATE(CASE WHEN D1_EMISSAO <> ' ' THEN D1_EMISSAO ELSE '19000101' END, 'YYYYMMDD') DESC
+            FETCH FIRST 1 ROW ONLY
+        ) AS Ultimo_Compra_VUNIT,
+        (
+            SELECT AVG(D1_VUNIT)
+            FROM Protheus.SD1010
+            WHERE D1_COD = produto.B1_COD
+        ) AS Media_D1_VUNIT
+
+
+    FROM protheus.sb1010 produto
+    LEFT JOIN Protheus.SBM010 GP ON produto.B1_GRUPO = GP.BM_GRUPO 
+    LEFT JOIN Protheus.SD1010 SD1 ON produto.B1_COD = SD1.D1_COD  
+
+    WHERE produto.B1_FILIAL = '01' and SD1.D_E_L_E_T_ <>'*' and produto.D_E_L_E_T_ <>'*' and SD1.D1_FILIAL = 010001-- and D1_COD = '101000006'
+    GROUP BY produto.B1_COD,GP.BM_DESC,produto.B1_GRUPO,produto.B1_DESC,produto.B1_PRV1
+) Subconsulta
