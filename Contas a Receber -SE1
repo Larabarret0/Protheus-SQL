@@ -1,0 +1,59 @@
+SELECT
+    CASE
+        WHEN Data_VencReal < CURRENT_DATE AND Data_BAIXA = TO_DATE('19000101', 'YYYYMMDD') THEN 'Título em Atraso'
+        WHEN Data_BAIXA <> TO_DATE('19000101', 'YYYYMMDD') THEN 'Título recebido'
+        ELSE 'Título no Prazo'
+    END AS Titulos_Atraso,
+    TabelaDerivada.*
+FROM (
+    SELECT
+        SE1.E1_NOMCLI as Cliente_descricao,
+        SE1.E1_NUM,
+        SE1.E1_ORIGEM,
+        CASE    
+            WHEN SE1.E1_ORIGEM = 'MATA954' THEN 'Apuração de ISS'
+            WHEN SE1.E1_ORIGEM = 'MATA953' THEN 'Apuração de ICMS'
+            WHEN SE1.E1_ORIGEM = 'FISA001' THEN 'Apuração de IEFD Contribuições'
+            ELSE ''
+        END AS APURACOES,
+        SE1.E1_NFELETR,
+        SE1.E1_Valor,
+        SE1.E1_Valor + SE1.E1_ACRESC - SE1.E1_DESCONT AS Valor_Corrigido,
+        (SE1.E1_Valor + SE1.E1_ACRESC - SE1.E1_DESCONT) - SE1.E1_Valor as Diferenca_Correcao,
+        TO_DATE(SE1.E1_EMISSAO, 'YYYYMMDD') AS Data_Emissao,
+        CASE 
+            WHEN SE1.E1_VENCTO <> ' ' THEN TO_DATE(SE1.E1_VENCTO, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+        END AS Data_Venc,
+        CASE 
+            WHEN SE1.E1_VENCREA <> ' ' THEN TO_DATE(SE1.E1_VENCREA, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+        END AS Data_VencReal,
+        CASE 
+            WHEN SE1.E1_BAIXA <> ' ' THEN TO_DATE(SE1.E1_BAIXA, 'YYYYMMDD') 
+            ELSE TO_DATE('19000101', 'YYYYMMDD') 
+        END AS Data_BAIXA,
+        CASE 
+            WHEN SE1.E1_BAIXA <> ' ' AND SE1.E1_BAIXA > SE1.E1_VENCREA THEN 'Recebido com atraso'
+            WHEN SE1.E1_BAIXA <> ' ' AND SE1.E1_BAIXA <= SE1.E1_VENCREA THEN 'Recebido no prazo'
+            ELSE 'Título em aberto'
+        END AS Estado_Pagto,
+        SE1.E1_Filial,
+        SE1.E1_TIPO,
+        SE1.E1_DESCONT,
+        SE1.E1_ACRESC,
+        SE1.E1_PARCELA,
+        SE1.E1_SALDO,
+        CASE 
+            WHEN SE1.E1_BAIXA <> ' '  AND SE1.E1_SALDO > 0 THEN 'Em liquidação'
+            WHEN SE1.E1_BAIXA = ' ' THEN 'Título Aberto'
+            ELSE 'Liquidado'
+        END AS Status_Liquidacao
+    FROM
+        PROTHEUS.SE1010 SE1
+    WHERE 
+        SE1.E1_FILIAL = '010001' AND SE1.D_E_L_E_T_ <> '*'
+) TabelaDerivada
+ORDER BY 
+    Data_BAIXA DESC
+
